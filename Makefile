@@ -44,8 +44,8 @@ bin:$(OBJS)
 clean:
 	@rm -rf $(BIN_DIR) $(OBJ_DIR) $(TESTS_DIR)
 
-mem_check:	OUTPUT_FILE = $(TESTS_DIR)/valgrind-out.txt
-mem_check:  CXXFLAGS = -g -O0
+mem_check: OUTPUT_FILE = $(TESTS_DIR)/valgrind-out.txt
+mem_check: CXXFLAGS = -g -O0
 
 mem_check: bin
 	@valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --log-file=$(OUTPUT_FILE) $(BIN_NAME)
