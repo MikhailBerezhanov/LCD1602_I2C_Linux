@@ -236,12 +236,12 @@ void LCD1602::control(bool backlight, bool cursor, bool blink)
 }
 
 // Scroll the entire display without changing the RAM
-void LCD1602::scroll_left(void) 
+void LCD1602::scroll_left() 
 {
 	this->send_command(LCD_CURSORSHIFT | LCD_DISPLAYMOVE | LCD_MOVELEFT);
 }
 
-void LCD1602::scroll_right(void) 
+void LCD1602::scroll_right() 
 {
 	this->send_command(LCD_CURSORSHIFT | LCD_DISPLAYMOVE | LCD_MOVERIGHT);
 }

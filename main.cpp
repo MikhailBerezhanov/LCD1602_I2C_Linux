@@ -35,9 +35,9 @@ void show_usage()
 	cout << "\\_ scroll <l | r>\t- scroll screen (left of right)\n";
 	cout << "\\_ ltr <0 | 1>\t\t- enable left to right printing\n";
 	cout << "\\_ autoscroll <0 | 1>\t- enable screen autoscroll\n";
-	cout << "\\_ set_c <row | col>\t- set cursor position\n";
-	cout << "\\_ puts <str>\t\t- print string\n";
-	cout << "\\_ putwc <unicode>\t- print unicode character" << endl;
+	cout << "\\_ set_c <row , col>\t- set cursor position\n";
+	cout << "\\_ print <str>\t\t- print string\n";
+	cout << "\\_ printwc <unicode>\t- print unicode character" << endl;
 }
 
 int main(int argc, char* argv[])
@@ -76,7 +76,7 @@ static void LCD_test(const string &i2c_device, int argc, char **argv)
 	int cmd_idx = 2;
 
 	if(argc >= 3){
-		if(string(argv[2]) == "addr" && (argc > 3)){
+		if((string(argv[2]) == "addr") && (argc > 3)){
 			lcd_addr = (uint8_t)atoi(argv[3]);
 			cmd_idx = 4;
 		}
@@ -99,15 +99,30 @@ static void LCD_test(const string &i2c_device, int argc, char **argv)
 		cout << "Printing test messages..." << endl;
 
 		for(int i = 0; i < 10; ++i){
-			lcd.print("АБВГДЕЖЗИЙКЛМНОП");
+			lcd.print_ru("ABCDEFG АБВГДЕЖЗ");
 			lcd.set_cursor(1, 0);
-			lcd.print("РСТУФХЦЧШЩЪЫЬЭЮЯ");
+			lcd.print("HIJKLMN ");
+			lcd.print_ru("ИЙКЛМНОП");
 			sleep(5);
 			lcd.clear();
 
-			lcd.print("абвгдеёжзиклмноп");
+			lcd.print("OPQRSTU ");
+			lcd.print_ru("РСТУФХЦЧ");
 			lcd.set_cursor(1, 0);
-			lcd.print("рстуфхцчшщъыьэюя");
+			lcd.print("VWXYZ ");
+			lcd.print_ru("ШЩЪЫЬЭЮЯ");
+			sleep(5);
+			lcd.clear();
+
+			lcd.print("abcdefg абвгдеёж");
+			lcd.set_cursor(1, 0);
+			lcd.print("hijklmn зиклмнп");
+			sleep(5);
+			lcd.clear();
+
+			lcd.print_ru("opqrstu рстуфхцч");
+			lcd.set_cursor(1, 0);
+			lcd.print_ru("vwxyz шщъыьэюя");
 			sleep(5);
 			lcd.clear();
 		}
@@ -199,7 +214,7 @@ static void LCD_test(const string &i2c_device, int argc, char **argv)
 		cout << "Setting lcd cursor to: " << row << "," << col << endl;
 		lcd.set_cursor(row, col);
 	}
-	else if(cmd == "puts"){
+	else if(cmd == "print"){
 		if(argc <= (cmd_idx + 1)){
 			cerr << "No text string provided for puts." << endl;
 			return;
@@ -207,7 +222,7 @@ static void LCD_test(const string &i2c_device, int argc, char **argv)
 
 		lcd.print(argv[3]);
 	}
-	else if(cmd == "putwc"){
+	else if(cmd == "printwc"){
 		if(argc <= (cmd_idx + 1)){
 			cerr << "No char code provided for putwc." << endl;
 			return;

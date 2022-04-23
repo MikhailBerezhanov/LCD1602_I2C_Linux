@@ -53,8 +53,8 @@ public:
 	void control(bool backlight, bool cursor = false, bool blink = false);
 	void return_home();
 	void set_cursor(uint8_t row, uint8_t col);
-	void scroll_right(void);
-	void scroll_left(void);
+	void scroll_right();
+	void scroll_left();
 	void left_to_right(bool on_off);
 	void autoscroll(bool on_off);
 
