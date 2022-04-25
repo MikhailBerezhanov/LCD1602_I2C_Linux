@@ -289,8 +289,9 @@ void LCD1602::user_char_create(uint8_t location, const uint8_t *charmap)
 // Prints user-characters from CGRAM memory (location 0-7)
 void LCD1602::user_char_print(uint8_t location)
 {
+	this->set_cursor(this->current_row, this->current_col);
 	this->send_data(location);
-	++current_col;
+	++this->current_col;
 }
 
 // Clears entire display and sets DDRAM address 0 in address counter
@@ -298,6 +299,8 @@ void LCD1602::clear()
 {
 	this->send_command(LCD_CLEARDISPLAY);
 	usleep(2000); // this command takes a long time
+	this->current_row = 0;
+	this->current_col = 0;
 }
 
 // Return home sets DDRAM address 0 into the address counter, and returns the display to its 
@@ -307,6 +310,8 @@ void LCD1602::return_home()
 {
 	this->send_command(LCD_RETURNHOME);
 	usleep(2000); // this command takes a long time
+	this->current_row = 0;
+	this->current_col = 0;
 }
 
 // Set the LCD cursor position
@@ -314,11 +319,13 @@ void LCD1602::set_cursor(uint8_t row, uint8_t col)
 {
 	uint8_t row_offsets[] = { 0x00, 0x40, 0x14, 0x54 };
 
-	if( row > this->numlines ) row = this->numlines - 1;
+	if( row > this->num_rows ){
+		row = this->num_rows - 1;
+	} 
 
 	this->send_command(LCD_SETDDRAMADDR | (col + row_offsets[row]));
 	this->current_row = row;
-    this->current_col = col;
+	this->current_col = col;
 }
 
 // --- Russian language support --- 
@@ -336,23 +343,23 @@ void LCD1602::reset_ru_symb_table()
 // Prints existing or creates in CGDRAM than prints new Cyrrilic character
 void LCD1602::print_ru_char(const uint8_t *charmap, uint8_t *index)
 {
-	// Print existing symbol
+	// Print already created symbol
 	if(*index != B_NOIDX){
 		this->user_char_print(*index);
 		return;
 	}
-  	// Create new symbol. After CGDRAM update, cursor pisiton is reset - saving current position.
-	uint8_t row = get_current_row();
-	uint8_t col = get_current_col();
-	// New symbol will be placed to memory with current sign-generator index (from 0 to 7)
+
+  	// Create new symbol that will be placed in memory
+	// with current sign-generator index (from 0 to 7)
 	this->user_char_create(this->current_symb_idx, charmap);
-	this->set_cursor(row, col);
+	// After CGDRAM update, cursor pisiton is reset - restore current position.
+	this->set_cursor(this->current_row, this->current_col);
 	this->user_char_print(this->current_symb_idx);
 
 	// Save created character's index, and increment sign-generator index
 	*index = this->current_symb_idx++;
 
-	if(this->current_symb_idx >= B_MAXIDX){
+	if(this->current_symb_idx > B_MAXIDX){
 		this->reset_ru_symb_table();
 	}
 }

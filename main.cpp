@@ -101,29 +101,38 @@ static void LCD_test(const string &i2c_device, int argc, char **argv)
 
 		for(int i = 0; i < 10; ++i){
 			lcd.print_ru("ABCDEFG АБВГДЕёЖ");
-			lcd.set_cursor(1, 0);
-			lcd.print("HIJKLMN ");
-			lcd.print_ru("ЗИЙКЛМНО");
 			sleep(5);
 			lcd.clear();
 
-			lcd.print("OPQRSTU ");
-			lcd.print_ru("ПРСТУФХЦ");
 			lcd.set_cursor(1, 0);
-			lcd.print("VWXYZ ");
-			lcd.print_ru("ЧШЩЪЫЬЭЮЯ");
+			lcd.print_ru("HIJKLMN ЗИЙКЛМНО");
+			sleep(5);
+			lcd.clear();
+
+			lcd.print_ru("OPQRST ПРСТУФХЦЧ");
+			sleep(5);
+			lcd.clear();
+
+			lcd.set_cursor(1, 0);
+			lcd.print_ru("VWXYZU ШЩЪЫЬЭЮЯ");
 			sleep(5);
 			lcd.clear();
 
 			lcd.print_ru("abcdefg абвгдеёж");
+			sleep(5);
+			lcd.clear();
+
 			lcd.set_cursor(1, 0);
 			lcd.print_ru("hijklmn зийклмно");
 			sleep(5);
 			lcd.clear();
 
-			lcd.print_ru("opqrstu прстуфхц");
+			lcd.print_ru("opqrst прстуфхцч");
+			sleep(5);
+			lcd.clear();
+
 			lcd.set_cursor(1, 0);
-			lcd.print_ru("vwxyz чшщъыьэюя");
+			lcd.print_ru("uvwxyz шщъыьэюя");
 			sleep(5);
 			lcd.clear();
 		}

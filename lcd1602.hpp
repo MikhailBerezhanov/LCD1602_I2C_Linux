@@ -86,7 +86,8 @@ public:
 
 private:
 	uint8_t address = 0;					// i2c port expander chip address
-	uint8_t numlines = 2;					// number of screen lines
+	uint8_t num_rows = 2;					// number of screen lines
+	uint8_t num_cols = 16; 					// number of columns in one line
 	uint8_t backlight_flag = LCD_BACKLIGHT;	// backlight status
 
 	uint8_t display_function = 0;			// function set status
