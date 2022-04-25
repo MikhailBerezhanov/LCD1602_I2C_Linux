@@ -1,6 +1,6 @@
 # CCPP=g++
 # CC=gcc
-CXXFLAGS = -Wall -O2 
+CXXFLAGS = -std=c++11 -Wall -O2 
 #-Wno-format-security -Wno-unused-variable -Wno-unused-function
 
 # PATHS

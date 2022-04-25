@@ -41,7 +41,7 @@ public:
 		uint8_t bitmap[8];
 	}custom_char;
 
-	LCD1602() = default;
+	LCD1602(uint8_t lcd_addr = PCF8574A_ADDR): address(lcd_addr){}
 
 	virtual ~LCD1602() = default;
 
@@ -120,7 +120,7 @@ private:
 class WH1602B_CTK final: public LCD1602
 {
 public:
-	WH1602B_CTK(): LCD1602() {}
+	WH1602B_CTK(uint8_t lcd_addr = PCF8574A_ADDR): LCD1602(lcd_addr) {}
 
 	// Print ENG + RU strings (Hardware supports Cyrillic symbols)
 	void print(const char c) override { this->print_wc(static_cast<wchar_t>(c)); }

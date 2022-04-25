@@ -82,7 +82,8 @@ static void LCD_test(const string &i2c_device, int argc, char **argv)
 		}
 	}
 
-	LCD1602 lcd;
+	// In order to avoid init phase each util call, providing lcd_addr in the constructor
+	LCD1602 lcd(lcd_addr);
 	i2c_init(i2c_device);
 
 	if(argc <= cmd_idx){
@@ -99,30 +100,30 @@ static void LCD_test(const string &i2c_device, int argc, char **argv)
 		cout << "Printing test messages..." << endl;
 
 		for(int i = 0; i < 10; ++i){
-			lcd.print_ru("ABCDEFG АБВГДЕЖЗ");
+			lcd.print_ru("ABCDEFG АБВГДЕёЖ");
 			lcd.set_cursor(1, 0);
 			lcd.print("HIJKLMN ");
-			lcd.print_ru("ИЙКЛМНОП");
+			lcd.print_ru("ЗИЙКЛМНО");
 			sleep(5);
 			lcd.clear();
 
 			lcd.print("OPQRSTU ");
-			lcd.print_ru("РСТУФХЦЧ");
+			lcd.print_ru("ПРСТУФХЦ");
 			lcd.set_cursor(1, 0);
 			lcd.print("VWXYZ ");
-			lcd.print_ru("ШЩЪЫЬЭЮЯ");
+			lcd.print_ru("ЧШЩЪЫЬЭЮЯ");
 			sleep(5);
 			lcd.clear();
 
-			lcd.print("abcdefg абвгдеёж");
+			lcd.print_ru("abcdefg абвгдеёж");
 			lcd.set_cursor(1, 0);
-			lcd.print("hijklmn зиклмнп");
+			lcd.print_ru("hijklmn зийклмно");
 			sleep(5);
 			lcd.clear();
 
-			lcd.print_ru("opqrstu рстуфхцч");
+			lcd.print_ru("opqrstu прстуфхц");
 			lcd.set_cursor(1, 0);
-			lcd.print_ru("vwxyz шщъыьэюя");
+			lcd.print_ru("vwxyz чшщъыьэюя");
 			sleep(5);
 			lcd.clear();
 		}
