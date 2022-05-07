@@ -96,7 +96,7 @@ Driver supports custom character adding with special methods:
 All characters are 5x8 bits, so charmap should be an array representing character bitmap
 
 ```C
-// with is custom '2'
+// this is custom '2'
 uint8_t charmap[8] = {
 	0b11111,
 	0b00001,
@@ -109,7 +109,7 @@ uint8_t charmap[8] = {
 };
 ```
 
-You also can use [LCD Custom Character Generator](https://maxpromer.github.io/LCD-Character-Creator/)
+You can also use [LCD Custom Character Generator](https://maxpromer.github.io/LCD-Character-Creator/)
 
 
 _NOTE: `print_ru` uses custom characters feature, so calling this method will overwite
