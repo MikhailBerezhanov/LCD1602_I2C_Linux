@@ -69,22 +69,52 @@ int main(int argc, char* argv[])
 
 After lcd.init() performed, it is ready for methods calls:
 
-* `clear()`
-* `control(bool backlight, bool cursor = false, bool blink = false)`
-* `return_home()`
-* `set_cursor(uint8_t row, uint8_t col)`
-* `scroll_right()`
-* `scroll_left()`
-* `left_to_right(bool on_off)`
-* `autoscroll(bool on_off)`
-* `get_addr()`
-* `get_current_row()`
-* `get_current_col()`
-* `get_control()`
-* `print(const std::string &str)`
-* `print_ru(const std::string &str)`
+* `clear()` - clear the screen
+* `control(bool backlight, bool cursor = false, bool blink = false)` - enable backlight, cursor indication, cursor blinking
+* `return_home()` - move cursor at position (0, 0)
+* `set_cursor(uint8_t row, uint8_t col)` - set cursor at position (row, col)
+* `scroll_right()` - move all the screen to the right side by 1 position
+* `scroll_left()` - move all the screen to the left side by 1 position
+* `left_to_right(bool on_off)` - enable 
+* `autoscroll(bool on_off)` - enable screen autoscroll
+* `get_addr()` - get curret i2c address
+* `get_current_row()` - get cursor's row position
+* `get_current_col()` - get cursor's column position
+* `get_control()`  - get backligh, cursor indication, cursor blinking states
+* `print(const std::string &str)` - print ENG string on the screen
+* `print_ru(const std::string &str)` - print RU string on the screen
 
 _Additionally, driver supports WH1602B_CTK implementation, that has hardware Cyrillic characters._
+
+#### Custon characters
+
+Driver supports custom character adding with special methods:
+
+* `user_char_create(uint8_t location, const uint8_t *charmap)` - saves charmap at determined memory location (supported locations are 0..7).
+* `user_char_print(uint8_t location)` - print character from determined location on the screen.
+
+All characters are 5x8 bits, so charmap should be an array representing character bitmap
+
+```C
+// with is custom '2'
+uint8_t charmap[8] = {
+	0b11111,
+	0b00001,
+	0b00001,
+	0b11111,
+	0b10000,
+	0b10000,
+	0b11111,
+	0b00000
+};
+```
+
+You also can use [LCD Custom Character Generator](https://maxpromer.github.io/LCD-Character-Creator/)
+
+
+_NOTE: `print_ru` uses custom characters feature, so calling this method will overwite
+user defined set_
+
 
 ### Utility
 
@@ -115,7 +145,7 @@ List of supported commands:
 * `bl <0 | 1>`- 0 - disable backlight, 1 - enable (default 0);
 * `c <0 | 1>`- 0 - disable cursor, 1 - enable (default 0);
 * `b <0 | 1>`- disable blinking cursor (default 0);
-* `clear`- clear screen;
+* `clear`- clear the screen;
 * `home`- return cursor to 0,0 position;
 * `scroll <l | r>`- scroll screen (left of right);
 * `ltr <0 | 1>`- enable left to right printing;
