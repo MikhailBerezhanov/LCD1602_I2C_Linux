@@ -17,11 +17,13 @@
 // Backlight control               (P3)
 //
 
-#pragma once
+#ifndef _LCD1602_HPP
+#define _LCD1602_HPP
 
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <tuple>
 
 // Supported i2c-adapters chip addresses 
 #define PCF8574A_ADDR   		0x7E
@@ -35,6 +37,15 @@ class LCD1602
 {
 public:
 
+	// Alignment types
+	enum class Alignment : char
+	{
+		NO = 0,
+		LEFT,
+		RIGHT,
+		CENTER,
+	};
+
 	// User character data
 	typedef struct {
 		uint8_t bitmap_idx;
@@ -47,32 +58,42 @@ public:
 
 	// Initialization method must be called before any other
 	void init(uint8_t lcd_addr, const std::string &i2c_dev = "");
-	
+	void set_addr(uint8_t lcd_addr) { address = lcd_addr; }
+
 	// Configure methods
 	void clear();
 	void control(bool backlight, bool cursor = false, bool blink = false);
 	void return_home();
 	void set_cursor(uint8_t row, uint8_t col);
-	void scroll_right();
-	void scroll_left();
+	void scroll_right(void);
+	void scroll_left(void);
 	void left_to_right(bool on_off);
 	void autoscroll(bool on_off);
 
 	// Get info methods
 	uint8_t get_addr() const { return address; }
+	uint8_t get_num_rows() const { return num_rows; }
+	uint8_t get_num_cols() const { return num_cols; }
 	uint8_t get_current_row() const { return current_row; }
 	uint8_t get_current_col() const { return current_col; }
-	uint8_t get_control() const { return display_control; }
+	std::tuple<bool, bool, bool> get_control() const;
+	bool get_backlight_state() const { return backlight_flag == LCD_BACKLIGHT; }
 
 	// Printing methods
 
 	// ENG string only
-	virtual void print(const char ch){
+	virtual void print_char(char ch){
 		this->send_data(static_cast<uint8_t>(ch));
 		++current_col;
 	}
-	virtual void print(const char *str);
-	virtual void print(const std::string &str) { this->print(str.c_str()); }
+	virtual void print(const char *fmt, ...);
+	virtual void print(const std::string &str, Alignment align = Alignment::NO){ 
+		this->print_str(str.c_str(), align); 
+	}
+
+	// Adds padding after str to fit row length (cols num. 
+	// Note: can be used with spaces symbols to avoid clear() calls.
+	virtual void print_with_padding(const std::string &str, char symb = ' ');
 
 	// ENG + RU string support 
 	// Cyrrilic symbols are software generated. Max 8 RU-letters on the screen at one time.
@@ -83,11 +104,12 @@ public:
 	// User-defined charecters methods (location: 0-7)
 	void user_char_create(uint8_t location, const uint8_t *charmap);
 	void user_char_print(uint8_t location);
+	inline void align(size_t len, Alignment align_type);
 
 private:
 	uint8_t address = 0;					// i2c port expander chip address
 	uint8_t num_rows = 2;					// number of screen lines
-	uint8_t num_cols = 16; 					// number of columns in one line
+	uint8_t num_cols = 16;					// number of columns in one screen line
 	uint8_t backlight_flag = LCD_BACKLIGHT;	// backlight status
 
 	uint8_t display_function = 0;			// function set status
@@ -111,7 +133,8 @@ private:
 	void print_ru_char(const uint8_t *charmap, uint8_t *index);
 
 	// Mixed print - supports both ENG and RU symbols
-	virtual void print_wc(const wchar_t wc);
+	virtual void print_wc(wchar_t wc);
+	virtual void print_str(const char *str, Alignment align_type);
 };
 
 
@@ -124,12 +147,21 @@ public:
 	WH1602B_CTK(uint8_t lcd_addr = PCF8574A_ADDR): LCD1602(lcd_addr) {}
 
 	// Print ENG + RU strings (Hardware supports Cyrillic symbols)
-	void print(const char c) override { this->print_wc(static_cast<wchar_t>(c)); }
-	void print(const char *str) override;
-	void print(const std::string &str) override { this->print(str.c_str()); }
+	// void print(const char *fmt, ...);
+	// void print(const std::string &str);
+
+	void print_char(char ch) override { this->print_wc(static_cast<wchar_t>(ch)); }
 
 private:
 	static const std::unordered_map<wchar_t, uint8_t> symb_codes;
-	void print_wc(const wchar_t wc) override;
+
+	// print() functions uses print_wc() and print_str() as backend,
+	// so only these two methods should be overrided
+	void print_wc(wchar_t wc) override;
+	void print_str(const char *str, Alignment align_type) override;
 };
 
+// Calculates number of symbols in UTF-8 string
+size_t number_of_symbols(const char *str, size_t *str_len = nullptr);
+
+#endif

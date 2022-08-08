@@ -1,7 +1,8 @@
 #include <cstring>
+#include <cstdarg>
 
 extern "C"{
-	#include <unistd.h>
+    #include <unistd.h>
 }
 
 #include "i2c.hpp"
@@ -235,13 +236,23 @@ void LCD1602::control(bool backlight, bool cursor, bool blink)
 	this->send_command(LCD_DISPLAYCONTROL | this->display_control);
 }
 
+std::tuple<bool, bool, bool> LCD1602::get_control() const
+{
+	std::tuple<bool, bool, bool> res { 
+		this->display_control & LCD_DISPLAYON, 
+		this->display_control & LCD_CURSORON, 
+		this->display_control & LCD_BLINKON };
+
+	return res;
+}
+
 // Scroll the entire display without changing the RAM
-void LCD1602::scroll_left() 
+void LCD1602::scroll_left(void) 
 {
 	this->send_command(LCD_CURSORSHIFT | LCD_DISPLAYMOVE | LCD_MOVELEFT);
 }
 
-void LCD1602::scroll_right() 
+void LCD1602::scroll_right(void) 
 {
 	this->send_command(LCD_CURSORSHIFT | LCD_DISPLAYMOVE | LCD_MOVERIGHT);
 }
@@ -281,7 +292,7 @@ void LCD1602::user_char_create(uint8_t location, const uint8_t *charmap)
 	location &= 0x07; // we only have 8 locations (0-7)
 	this->send_command(LCD_SETCGRAMADDR | (location << 3));
 
-	for (int i=0; i<8; i++) {
+	for (int i = 0; i < 8; ++i) {
 		this->send_data(charmap[i]);
 	}
 }
@@ -289,9 +300,8 @@ void LCD1602::user_char_create(uint8_t location, const uint8_t *charmap)
 // Prints user-characters from CGRAM memory (location 0-7)
 void LCD1602::user_char_print(uint8_t location)
 {
-	this->set_cursor(this->current_row, this->current_col);
 	this->send_data(location);
-	++this->current_col;
+	++current_col;
 }
 
 // Clears entire display and sets DDRAM address 0 in address counter
@@ -299,8 +309,6 @@ void LCD1602::clear()
 {
 	this->send_command(LCD_CLEARDISPLAY);
 	usleep(2000); // this command takes a long time
-	this->current_row = 0;
-	this->current_col = 0;
 }
 
 // Return home sets DDRAM address 0 into the address counter, and returns the display to its 
@@ -310,8 +318,6 @@ void LCD1602::return_home()
 {
 	this->send_command(LCD_RETURNHOME);
 	usleep(2000); // this command takes a long time
-	this->current_row = 0;
-	this->current_col = 0;
 }
 
 // Set the LCD cursor position
@@ -319,13 +325,13 @@ void LCD1602::set_cursor(uint8_t row, uint8_t col)
 {
 	uint8_t row_offsets[] = { 0x00, 0x40, 0x14, 0x54 };
 
-	if( row > this->num_rows ){
+	if(row > this->num_rows){
 		row = this->num_rows - 1;
 	} 
 
 	this->send_command(LCD_SETDDRAMADDR | (col + row_offsets[row]));
 	this->current_row = row;
-	this->current_col = col;
+    this->current_col = col;
 }
 
 // --- Russian language support --- 
@@ -343,30 +349,30 @@ void LCD1602::reset_ru_symb_table()
 // Prints existing or creates in CGDRAM than prints new Cyrrilic character
 void LCD1602::print_ru_char(const uint8_t *charmap, uint8_t *index)
 {
-	// Print already created symbol
+	// Print existing symbol
 	if(*index != B_NOIDX){
 		this->user_char_print(*index);
 		return;
 	}
-
-  	// Create new symbol that will be placed in memory
-	// with current sign-generator index (from 0 to 7)
+  	// Create new symbol. After CGDRAM update, cursor pisiton is reset - saving current position.
+	uint8_t row = get_current_row();
+	uint8_t col = get_current_col();
+	// New symbol will be placed to memory with current sign-generator index (from 0 to 7)
 	this->user_char_create(this->current_symb_idx, charmap);
-	// After CGDRAM update, cursor pisiton is reset - restore current position.
-	this->set_cursor(this->current_row, this->current_col);
+	this->set_cursor(row, col);
 	this->user_char_print(this->current_symb_idx);
 
 	// Save created character's index, and increment sign-generator index
 	*index = this->current_symb_idx++;
 
-	if(this->current_symb_idx > B_MAXIDX){
+	if(this->current_symb_idx >= B_MAXIDX){
 		this->reset_ru_symb_table();
 	}
 }
 
 // Mixed print - supports both ENG and RU symbols
 // Scans wc to choose correct print method and add new RU symbol if neede
-void LCD1602::print_wc(const wchar_t wc) 
+void LCD1602::print_wc(wchar_t wc) 
 {
 	// RU-letters that are equal to ENG symbols
 	switch(wc){
@@ -422,7 +428,7 @@ void LCD1602::print_wc(const wchar_t wc)
 			}
 
 			// Else symbol is ENG - just print
-			this->print(static_cast<const char>(wc));
+			this->print_char(static_cast<char>(wc));
 		}
 	}
 }
@@ -445,12 +451,66 @@ static size_t mbtowc(const char *in, wchar_t *out, uint8_t mb_num)
 	}
 }
 
-// ENG string print
-void LCD1602::print(const char *str) 
+inline void LCD1602::align(size_t str_len, Alignment align_type)
 {
+	if((align_type == Alignment::NO) || (align_type == Alignment::LEFT)){
+		return;
+	}
+
+	int shift = this->get_num_cols() - str_len;
+	if(shift <= 0){
+		return;
+	}
+
+	if(align_type == Alignment::CENTER){
+		shift /= 2;
+	}
+
+	// Alignment::CENTER
+	// Alignment::RIGHT
+	while(shift--) {
+		this->print_char(' ');
+	}
+}
+
+// ENG string print
+void LCD1602::print_str(const char *str, Alignment align_type) 
+{
+	align(strlen(str), align_type);
+
 	while(*str) {
-		this->print(*str);
+		this->print_char(*str);
 		++str;
+	}
+}
+
+void LCD1602::print(const char *fmt, ...)
+{
+	char str[128] = {0};
+
+	va_list args;
+	va_start(args, fmt);
+
+	vsnprintf(str, sizeof(str), fmt, args);
+
+	// Send data to print
+	this->print_str(str, Alignment::NO);
+
+	fmt = va_arg(args, const char*);
+
+	// Cleaning
+	va_end(args);
+}
+
+void LCD1602::print_with_padding(const std::string &str, char symb)
+{	
+	this->print_str(str.c_str(), Alignment::NO);
+
+	int indent_len = this->get_num_cols() - this->get_current_col();
+
+	if(indent_len > 0){
+		std::string padding(indent_len, symb);
+		this->print_str(padding.c_str(), Alignment::NO);
 	}
 }
 
@@ -523,7 +583,7 @@ const std::unordered_map<wchar_t, uint8_t> WH1602B_CTK::symb_codes = {
 };
 
 // Mixed print. Uses ROM symbols table.
-void WH1602B_CTK::print_wc(const wchar_t wc) 
+void WH1602B_CTK::print_wc(wchar_t wc) 
 {
 	// RU-letters that are equal to ENG symbols
 	switch(wc){
@@ -583,14 +643,39 @@ void WH1602B_CTK::print_wc(const wchar_t wc)
 	}
 }
 
-void WH1602B_CTK::print(const char *str)
+void WH1602B_CTK::print_str(const char *str, Alignment align_type)
 {
-	wchar_t wstr;
+	wchar_t wstr = 0;
 	size_t shift = 0;
-	size_t size = std::strlen(str);
+	size_t len = 0;
+	size_t num = number_of_symbols(str, &len);
 
-	while(shift < size){
+	LCD1602::align(num, align_type);
+
+	while(shift < len){
 		shift += mbtowc(str + shift, &wstr, 2);
 		this->print_wc(wstr);
 	}
+}
+
+size_t number_of_symbols(const char *str, size_t *str_len)
+{
+	size_t two_bytes_chars = 0;
+	size_t total_len = 0;
+
+	while(*str){
+		unsigned char curr_ch = static_cast<unsigned char>(*str);
+		// Check if it is ASCII symbol or not 
+		if((curr_ch == 0xD0) || (curr_ch == 0xD1)){
+			++two_bytes_chars;
+		}
+		++total_len;
+		++str;
+	}
+
+	if(str_len){
+		*str_len = total_len;
+	}
+
+	return total_len - two_bytes_chars;
 }
