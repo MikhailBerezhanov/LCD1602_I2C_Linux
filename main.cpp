@@ -84,7 +84,7 @@ static void LCD_test(const string &i2c_device, int argc, char **argv)
 
 	// In order to avoid init phase each util call, providing lcd_addr in the constructor
 	LCD1602 lcd(lcd_addr);
-	i2c_init(i2c_device);
+	hw::i2c_init(i2c_device);
 
 	if(argc <= cmd_idx){
 		cerr << "Invalid usage. See --help" << endl;

@@ -1,23 +1,24 @@
 #include <stdexcept>
 #include <string>
-#include <memory>
 #include <mutex>
-#include <cstdint>
+#include <memory>
 #include <cstring>
 #include <cerrno>
 #include <cstdio>
 
 extern "C"{
-    #include <unistd.h>
-    #include <fcntl.h>
-    #include <sys/ioctl.h>
-    #include <linux/i2c.h>
-    #include <linux/i2c-dev.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <linux/i2c.h>
+#include <linux/i2c-dev.h>
 }
 
 #include "i2c.hpp"
 
 #define ARRAY_SIZE(a)   (sizeof(a) / sizeof(*a))
+
+namespace hw{
 
 static std::string dev_ = "/dev/i2c-5"; 	// устройство i2c в ОС 
 static std::mutex mutex_; 					// синхронизация совместного доступа к шине i2c
@@ -32,28 +33,28 @@ void i2c_init(const std::string &dev)
 // Интерфейс приемопередачи данных по I2C
 static bool i2c_rdwr(struct i2c_msg *msgs, int nmsgs)
 {
-    struct i2c_rdwr_ioctl_data msgset;
-    msgset.msgs = msgs;
-    msgset.nmsgs = nmsgs;
+	struct i2c_rdwr_ioctl_data msgset;
+	msgset.msgs = msgs;
+	msgset.nmsgs = nmsgs;
 
-    if(msgs == nullptr || nmsgs <= 0){
-    	return false;
-    } 
+	if(msgs == nullptr || nmsgs <= 0){
+		return false;
+	} 
 
-    std::lock_guard<std::mutex> lck(mutex_);
+	std::lock_guard<std::mutex> lck(mutex_);
 
-    int fd = open(dev_.c_str(), O_RDWR);
+	int fd = open(dev_.c_str(), O_RDWR);
 	if(fd < 0){
 		throw std::runtime_error(std::string("open device '") + dev_ + "' failed: " + strerror(errno));
 	} 
 
-    if(ioctl(fd, I2C_RDWR, &msgset) < 0){
-    	close(fd);
-    	return false;
-    } 
+	if(ioctl(fd, I2C_RDWR, &msgset) < 0){
+		close(fd);
+		return false;
+	} 
 
-    close(fd);
-    return true;
+	close(fd);
+	return true;
 }
 
 /**
@@ -85,17 +86,17 @@ void i2c_write(uint8_t slave_address, uint16_t reg, const uint8_t *buf, uint16_t
 	msgs[0].len = data_len;
 
 	if(reg_len == 2){
-	    data[0] = reg >> 8;
-	    data[1] = reg & 0xFF;
-	    memcpy(data.get() + 2, buf, len);
+		data[0] = reg >> 8;
+		data[1] = reg & 0xFF;
+		memcpy(data.get() + 2, buf, len);
 	}
 	else{
-	    data[0] = reg;
-	    memcpy(data.get() + 1, buf, len);
+		data[0] = reg;
+		memcpy(data.get() + 1, buf, len);
 	}
 
 	if( !i2c_rdwr(msgs, ARRAY_SIZE(msgs)) ) {
-		throw std::runtime_error(std::string("i2c_write error: ") + strerror(errno)); 
+		throw std::runtime_error(std::string("i2c_write error (addr: " + std::to_string(slave_address) + ") - ") + strerror(errno)); 
 	}
 }
 
@@ -115,7 +116,7 @@ void i2c_write_byte(uint8_t slave_address, uint8_t byte)
 	msgs[0].buf = write_buf;
 
 	if( !i2c_rdwr(msgs, ARRAY_SIZE(msgs)) ) {
-		throw std::runtime_error(std::string("i2c_write_byte error: ") + strerror(errno)); 
+		throw std::runtime_error(std::string("i2c_write_byte error (addr: " + std::to_string(slave_address) + ") - ") + strerror(errno)); 
 	}
 }
 
@@ -155,7 +156,8 @@ void i2c_read(uint8_t slave_address, uint16_t reg, uint8_t *buf, uint16_t len)
 	msgs[1].len = len;
 
 	if( !i2c_rdwr(msgs, ARRAY_SIZE(msgs)) ) {
-		throw std::runtime_error(std::string("i2c_read error: ") + strerror(errno));
+		throw std::runtime_error(std::string("i2c_read error (addr: " + std::to_string(slave_address) + ") -") + strerror(errno));
 	}
 }
 
+} // namespace hw

@@ -8,6 +8,8 @@ extern "C"{
 #include "i2c.hpp"
 #include "lcd1602.hpp"
 
+using namespace hw;
+
 // LCD controller pinout
 #define PIN_RS 		( (uint8_t)(1 << 0) )	// 1 - Send Data, 0 - Send Command
 #define PIN_RW   	( (uint8_t)(1 << 1) )	// Read \ Write to CG or DDRAM
@@ -647,35 +649,59 @@ void WH1602B_CTK::print_str(const char *str, Alignment align_type)
 {
 	wchar_t wstr = 0;
 	size_t shift = 0;
-	size_t len = 0;
-	size_t num = number_of_symbols(str, &len);
+	size_t bytes_num = 0;
+	size_t symbols_num = number_of_symbols(str, &bytes_num);
 
-	LCD1602::align(num, align_type);
+	LCD1602::align(symbols_num, align_type);
 
-	while(shift < len){
+	while(shift < bytes_num){
 		shift += mbtowc(str + shift, &wstr, 2);
 		this->print_wc(wstr);
 	}
 }
 
-size_t number_of_symbols(const char *str, size_t *str_len)
+size_t number_of_symbols(const char *str, size_t *bytes_num)
 {
-	size_t two_bytes_chars = 0;
-	size_t total_len = 0;
+	size_t bytes_count = 0;
+	size_t symbols_num = 0;
 
-	while(*str){
-		unsigned char curr_ch = static_cast<unsigned char>(*str);
-		// Check if it is ASCII symbol or not 
-		if((curr_ch == 0xD0) || (curr_ch == 0xD1)){
-			++two_bytes_chars;
+	const unsigned char *ptr = reinterpret_cast<const unsigned char*>(str);
+
+	while(*ptr){
+
+		// Check UTF-8 octets (ASCII or Cyrillic)
+
+		if((*ptr >> 7) == 0x00){
+			// 1-byte char
+			++ptr;
+			++bytes_count;
 		}
-		++total_len;
-		++str;
+		else if((*ptr & 0xE0) == 0xC0){
+			// 2-bytes char
+			ptr += 2;
+			bytes_count += 2;
+		}
+		else if((*ptr & 0xF0) == 0xE0){
+			// 3-bytes char
+			ptr += 3;
+			bytes_count += 3;
+		}
+		else if((*ptr & 0xF8) == 0xF0){
+			// 4-bytes char
+			ptr += 4;
+			bytes_count += 4;
+		}
+		else{
+			// Unknown octet
+			return 0;	
+		}
+
+		++symbols_num;
 	}
 
-	if(str_len){
-		*str_len = total_len;
+	if(bytes_num){
+		*bytes_num = bytes_count;
 	}
 
-	return total_len - two_bytes_chars;
+	return symbols_num;
 }

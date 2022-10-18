@@ -37,7 +37,7 @@ class LCD1602
 {
 public:
 
-	// Alignment types
+	//
 	enum class Alignment : char
 	{
 		NO = 0,
@@ -161,7 +161,6 @@ private:
 	void print_str(const char *str, Alignment align_type) override;
 };
 
-// Calculates number of symbols in UTF-8 string
-size_t number_of_symbols(const char *str, size_t *str_len = nullptr);
+size_t number_of_symbols(const char *str, size_t *bytes_num = nullptr);
 
 #endif
